@@ -2,10 +2,11 @@
 
 namespace App\Decorators;
 
-class JsSkillDecorator extends UserDecorator
+class JSDecorator extends UserWithSkill
 {
     public function getDescription(): string
     {
-        return $this->user->description . ' js';
+        return parent::getDescription() . 'js, ';
     }
 }
+

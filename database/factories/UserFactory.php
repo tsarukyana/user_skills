@@ -2,15 +2,10 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-
 use App\Models\User;
-use App\Decorators\PhpSkillDecorator;
-use App\Decorators\JsSkillDecorator;
-use App\Decorators\GolangSkillDecorator;
-use App\Decorators\JavaSkillDecorator;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+use App\Decorators\{PHPDecorator, JSDecorator, GoDecorator, JavaDecorator, UserWithSkill};
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -33,29 +28,28 @@ class UserFactory extends Factory
             'name' => $this->faker->name,
             'email' => $this->faker->unique()->safeEmail,
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => bcrypt('password'),
             'remember_token' => Str::random(10),
         ]);
 
-        $decorators = [
-            PhpSkillDecorator::class,
-            JsSkillDecorator::class,
-            GolangSkillDecorator::class,
-            JavaSkillDecorator::class,
-        ];
+        $skills = [PHPDecorator::class, JSDecorator::class, GoDecorator::class, JavaDecorator::class];
 
-        shuffle($decorators);
-        $numberOfDecorators = rand(1, count($decorators));
+        $description = '';
 
-        for ($i = 0; $i < $numberOfDecorators; $i++) {
-            $decorator = new $decorators[$i]($user);
-            $user->description .= $decorator->getDescription();
+        // Ensure that $randKeys is always an array
+        $randKeys = array_rand($skills, rand(1, 4));
+        if (!is_array($randKeys)) {
+            $randKeys = [$randKeys];
         }
 
-        // Split the string into an array of words
-        // Use array_unique to remove duplicates while preserving the order
-        // Join the words back into a single string
-        $user->description = implode(' ', array_unique(explode(' ', trim($user->description))));
+        foreach ($randKeys as $index) {
+            $skillClass = $skills[$index];
+            // The decorator pattern is using here
+            $decoratedUser = new $skillClass(new UserWithSkill($user));
+            $description .= $decoratedUser->getDescription();
+        }
+
+        $user->description = rtrim($description, ', ');
 
         $definition = $user->toArray();
         $definition['password'] = $user->password; // important
